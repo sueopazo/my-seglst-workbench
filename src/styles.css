@@ -840,6 +840,13 @@ header {
   margin: 0 0 8px;
 }
 
+.empty-about {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0 0 20px;
+}
+
 .empty p {
   margin: 0 0 28px;
 }
@@ -890,6 +897,14 @@ header {
   font-size: 12px;
   font-family: var(--mono);
   color: var(--muted);
+}
+
+.empty-zone-action {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+  opacity: 0.7;
+  margin-top: 4px;
 }
 
 .optimize {

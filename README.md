@@ -3,14 +3,14 @@
 A browser-based QA tool for reviewing speaker segments in multi-speaker audio
 diarization data. It loads one speaker's `.seglst.json` segment file alongside their
 `.wav` track and provides a single-screen workspace to correct segment text, adjust
-boundaries, and insert non-speech tokens — replacing Gecko in the QA1 review step.
+boundaries, and insert non-speech tokens — replacing Gecko in the QA review step.
 
 Runs entirely in the browser. No server, no upload: the audio and transcript never
 leave the machine.
 
 ## Why this over Gecko
 
-SegLST Workbench was built specifically for the QA1 review flow, and removes the main
+SegLST Workbench was built specifically for the QA review flow, and removes the main
 reasons a reviewer had to keep Gecko (and a second tool pass) in the loop.
 
 - **Persistent autosave.** Gecko autosaves, but the work is lost when the window
@@ -40,8 +40,8 @@ reasons a reviewer had to keep Gecko (and a second tool pass) in the loop.
 
 ### Result
 
-In a real, timed QA1 run, review time dropped from a previous average of ~90 minutes to
-**~42 minutes — less than half.** The largest contributions come from the pre-review
+Measured in one timed QA1 review pass on a real file, review time dropped from a
+previous average of ~90 minutes to **~42 minutes — less than half.** The largest contributions come from the pre-review
 optimization pass and one-click token insertion.
 
 ## Features

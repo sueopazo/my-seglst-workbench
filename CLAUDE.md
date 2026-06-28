@@ -1,6 +1,6 @@
 # CLAUDE.md — SegLST Workbench
 
-QA1 review tool for a multi-speaker audio diarization QA project. Loads one speaker's
+QA review tool for a multi-speaker audio diarization project. Loads one speaker's
 individual channel (`.seglst` JSON + `.wav`) and helps a moderator review it
 segment by segment: fix orthography, define accurate boundaries, insert
 paralinguistic tokens. Standalone, offline, browser-based.
@@ -40,7 +40,7 @@ src/app.ts Orchestration: wires lib + ui + DOM events.
 
 ## Locked scope — do NOT scope-creep
 
-- **Single channel at a time.** No multi-speaker / cross-channel views. QA1 reviews
+- **Single channel at a time.** No multi-speaker / cross-channel views. QA reviews
   each speaker's individual track one at a time, by design.
 - **Segment-by-segment stepping is the spine.** New features add context around it;
   they don't replace the prev/next focus flow.
