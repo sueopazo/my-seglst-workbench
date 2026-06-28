@@ -1,4 +1,5 @@
 import { TAG_PINNED, TAG_EXTRA, TAG_TOOLTIPS } from './lib/constants';
+import { generateReport } from './lib/report';
 import { detectEdges, internalSilences, segPeakDb } from './lib/audio';
 import { orthoFix } from './lib/ortho';
 import { PROFILES } from './lib/profiles';
@@ -45,6 +46,8 @@ export class App {
   private workSessionStart: number | null = null;
   private workTick: ReturnType<typeof setInterval> | null = null;
 
+  private originalSegments: Segment[] | null = null;
+
   private minimap = new Minimap($('#minimap'));
   private wsView = new WaveSurferView();
   private waveGain = 30;
@@ -76,6 +79,7 @@ export class App {
     acceptBadge: $('#accept-badge'),
     btnLog: $('#btn-log'),
     btnExport: $('#btn-export') as HTMLButtonElement,
+    btnReport: $('#btn-report') as HTMLButtonElement,
     logBadge: $('#log-badge'),
     drawer: $('#drawer'),
     drawerClose: $('#drawer-close'),
@@ -159,6 +163,7 @@ export class App {
     this.els.btnLog.addEventListener('click', () => this.els.drawer.classList.toggle('open'));
     this.els.drawerClose.addEventListener('click', () => this.els.drawer.classList.remove('open'));
     this.els.btnExport.addEventListener('click', () => this.export());
+    this.els.btnReport.addEventListener('click', () => this.downloadReport());
     this.els.btnPlayPause.addEventListener('click', () => this.playPause());
     this.els.btnPlaySeg.addEventListener('click',   () => this.playSegment());
     this.els.audio.addEventListener('ended', () => this.stopPlayback());
@@ -286,6 +291,7 @@ export class App {
     }
 
     this.segments = saved.segments;
+    this.originalSegments = saved.originalSegments ?? null;
     this.meta = saved.meta;
     this.log = saved.log;
     this.logSeq = saved.logSeq;
@@ -299,6 +305,7 @@ export class App {
     this.minimap.setLength(this.segments.length, (i) => this.goTo(i));
     this.minimap.show();
     this.els.btnExport.disabled = false;
+    this.els.btnReport.disabled = false;
     this.renderLog();
     this.toast('Session restored');
   }
@@ -324,6 +331,7 @@ export class App {
         this.pushLog(segId, type, detail, false),
       );
       this.segments = parsed.segments;
+      this.originalSegments = structuredClone(parsed.segments);
       const langCode = this.els.langSelect.value;
       this.meta = { ...parsed.meta, seglstName: f.name, wavName: this.meta.wavName, langCode };
 
@@ -332,6 +340,7 @@ export class App {
       this.minimap.setLength(this.segments.length, (i) => this.goTo(i));
       this.minimap.show();
       this.els.btnExport.disabled = false;
+      this.els.btnReport.disabled = false;
       this.els.btnUndo.disabled = true;
       this.renderLog();
       if (this.wav !== null && this.channelData !== null) {
@@ -538,6 +547,7 @@ export class App {
     this.els.btnUndo.hidden = false;
     this.els.btnLog.hidden = false;
     this.els.btnExport.hidden = false;
+    this.els.btnReport.hidden = false;
     this.els.btnSplit.hidden = false;
     this.els.btnMergeNext.hidden = false;
     this.els.btnDeleteSeg.hidden = false;
@@ -825,6 +835,22 @@ export class App {
         `${this.segments.length} segments ready`,
         'export',
         () => this.export(),
+      );
+      mk(
+        'report-end',
+        '📄',
+        'Download QA report',
+        'effort · diff · changelog',
+        'report',
+        () => this.downloadReport(),
+      );
+      mk(
+        'both-end',
+        '⬇',
+        'Download both',
+        'corrected file + report',
+        'both',
+        () => { this.export(); this.downloadReport(); },
       );
     }
   }
@@ -1292,6 +1318,7 @@ export class App {
     saveState({
       meta: this.meta,
       segments: this.segments,
+      originalSegments: this.originalSegments ?? undefined,
       log: this.log,
       logSeq: this.logSeq,
       cur: this.cur,
@@ -1314,6 +1341,27 @@ export class App {
     a.click();
     URL.revokeObjectURL(a.href);
     this.toast(`Exported: ${a.download}`);
+  }
+
+  private downloadReport(): void {
+    const elapsedMs = this.workElapsedMs +
+      (this.workSessionStart ? Date.now() - this.workSessionStart : 0);
+    const md = generateReport({
+      fileName: this.meta.seglstName,
+      elapsedMs,
+      originalSegments: this.originalSegments,
+      currentSegments: this.segments,
+      log: this.log,
+    });
+    const blob = new Blob([md], { type: 'text/markdown' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const orig = this.meta.seglstName ?? this.meta.speaker ?? 'seglst';
+    const base = orig.replace(/\.seglst\.json$/i, '').replace(/\.json$/i, '');
+    a.download = `${base}_report.md`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    this.toast(`Report: ${a.download}`);
   }
 
   private onKey(e: KeyboardEvent): void {

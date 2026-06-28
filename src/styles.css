@@ -754,6 +754,42 @@ header {
   color: #fff;
 }
 
+.prop.report-end {
+  border-color: #a8c9e0;
+  background: var(--orto-bg);
+}
+
+.prop.report-end:hover {
+  background: #d0e7f4;
+}
+
+.prop.report-end .k {
+  color: var(--orto);
+}
+
+.prop.report-end .go {
+  background: var(--orto);
+  color: #fff;
+}
+
+.prop.both-end {
+  border-color: #c5b8e8;
+  background: var(--estruct-bg);
+}
+
+.prop.both-end:hover {
+  background: #ddd5f3;
+}
+
+.prop.both-end .k {
+  color: var(--estruct);
+}
+
+.prop.both-end .go {
+  background: var(--estruct);
+  color: #fff;
+}
+
 .nav {
   display: flex;
   gap: 12px;

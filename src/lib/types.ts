@@ -62,6 +62,7 @@ export interface SavedState {
   savedAt: number;
   meta: SessionMeta;
   segments: Segment[];
+  originalSegments?: Segment[];
   log: LogEntry[];
   logSeq: number;
   cur: number;

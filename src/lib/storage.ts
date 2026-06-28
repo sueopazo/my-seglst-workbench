@@ -16,6 +16,7 @@ export function loadSavedState(): SavedState | null {
 export function saveState(payload: {
   meta: SessionMeta;
   segments: Segment[];
+  originalSegments?: Segment[];
   log: LogEntry[];
   logSeq: number;
   cur: number;
