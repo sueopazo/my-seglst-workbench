@@ -172,7 +172,7 @@ export class App {
     });
     this.els.audio.addEventListener('timeupdate', () => this.updatePlayheadLabel());
     this.els.btnMergeNext.addEventListener('click', () => this.mergeNext());
-    this.els.btnDeleteSeg.addEventListener('click', () => this.deleteSegConfirm());
+    this.els.btnDeleteSeg.addEventListener('click', () => this.deleteSeg());
     this.els.btnTagToText.addEventListener('click', () => this.tagToText());
     this.els.zoomSlider.addEventListener('input', () => {
       const v = Number(this.els.zoomSlider.value);
@@ -201,6 +201,12 @@ export class App {
     });
 
     document.addEventListener('keydown', (e) => this.onKey(e));
+    window.addEventListener('beforeunload', (e) => {
+      if (this.segments.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
   }
 
   private buildTagChips(): void {
@@ -1037,17 +1043,6 @@ export class App {
     this.toast('New segment — write the text');
   }
 
-  private deleteSegConfirm(): void {
-    const s = this.segments[this.cur];
-    if (!s) return;
-    const label = s.words ? `"${s.words.slice(0, 40)}"` : '(no text)';
-    const ok = confirm(
-      `Delete segment ${label}?\n(${mmss(s.start)} – ${mmss(s.end)})\n\nYou can undo with ↶ Undo.`,
-    );
-    if (!ok) return;
-    this.deleteSeg();
-  }
-
   private mergeNext(): void {
     this.snapshot();
     const merged = mergeSegments(this.segments[this.cur], this.segments[this.cur + 1]);
@@ -1345,7 +1340,10 @@ export class App {
     } else if (e.key === 'ArrowLeft' && this.cur > 0) {
       e.preventDefault();
       this.goTo(this.cur - 1);
-    } else if (e.key === ' ') {
+    } else if (e.key === ' ' && e.shiftKey) {
+      e.preventDefault();
+      this.playSegment();
+    } else if (e.key === ' ' && !e.shiftKey) {
       e.preventDefault();
       this.playPause();
     } else if (e.key === 'Enter') {
