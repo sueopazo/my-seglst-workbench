@@ -212,6 +212,29 @@ export class App {
         e.returnValue = '';
       }
     });
+
+    window.addEventListener('pageshow', (e) => {
+      if (!e.persisted) return;
+      // bfcache restore: the .analyzing overlay may be stuck with class 'on'
+      // (its finally block never ran when the page was frozen mid-load).
+      // Remove it so drop zones are reachable again on the first attempt.
+      this.els.analyzing.classList.remove('on');
+      // Blob URLs don't survive bfcache; revoke and clear audio state.
+      if (this.audioURL) {
+        URL.revokeObjectURL(this.audioURL);
+        this.audioURL = null;
+      }
+      this.wav = null;
+      this.channelData = null;
+      this.els.audio.removeAttribute('src');
+      this.els.audio.load();
+      this.setAudioStatus('no audio');
+      this.wsView.destroy();
+      this.setWaveVisible(false);
+      this.markLoaded(this.els.lblWav, '');
+      this.els.emptyZoneWav.classList.remove('ok');
+      this.toast('Drop the .wav again to continue');
+    });
   }
 
   private buildTagChips(): void {
@@ -864,7 +887,7 @@ export class App {
     s.words = out;
     s.editedTxt = true;
     this.pushLog(this.cur, 'orto', changes.join(', '));
-    this.updateView();
+    this.updateView(false);
   }
 
   private firstProposalAction(): (() => void) | null {
@@ -980,7 +1003,7 @@ export class App {
       'estruct',
       `Split into ${parts.length} at silence (${sil.map((x) => `${Math.round(x.len * 1000)}ms`).join(', ')})`,
     );
-    this.updateView();
+    this.updateView(false);
     this.toast('Text distributed by count — review each split segment');
   }
 
@@ -1231,13 +1254,14 @@ export class App {
       await this.waitForAudioReady();
     }
     const start = Math.max(0, s.start);
-    const durationMs = Math.max(100, (s.end + 0.05 - start) * 1000);
     await this.seekTo(start);
     this.playing = this.cur;
     try {
       await this.els.audio.play();
       this.els.btnPlayPause.classList.add('on');
       this.els.btnPlayPause.textContent = '⏸ Pause';
+      const actualStart = this.els.audio.currentTime;
+      const durationMs = Math.max(100, (this.segments[this.cur].end + 0.05 - actualStart) * 1000);
       this.stopTimer = window.setTimeout(() => {
         if (this.playing === this.cur) this.stopPlayback();
       }, durationMs);
