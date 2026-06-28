@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SegLST Workbench</title>
+    <style>body{visibility:hidden}</style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">SegLST Workbench<small id="brand-badge">ES · energy</small></div>
+      <div class="loaders">
+        <div class="ld">
+          <label class="req" id="lbl-seglst">
+            seglst
+            <input type="file" id="in-seglst" accept=".json,application/json" />
+          </label>
+        </div>
+        <div class="ld">
+          <label class="req" id="lbl-wav">
+            .wav track
+            <input type="file" id="in-wav" accept="audio/*,.wav,audio/wav" />
+          </label>
+        </div>
+        <div class="lang-picker">
+          <span class="lang-label">Language</span>
+          <select id="lang-select">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="pt">Português (BR)</option>
+            <option value="de">Deutsch</option>
+            <option value="fr">Français</option>
+            <option value="it">Italiano</option>
+          </select>
+        </div>
+      </div>
+  <div class="sp"></div>
+  <span class="audio-status" id="audio-status">no audio</span>
+  <span class="work-timer" id="work-timer" hidden></span>
+  <span class="save-hint" id="save-hint" hidden>saved</span>
+<button class="hbtn" id="btn-accept-all" type="button" disabled hidden>
+        Accept all<span class="badge" id="accept-badge">0</span>
+      </button>
+      <button class="hbtn" id="btn-undo" type="button" disabled hidden>↶ Undo</button>
+      <button class="hbtn" id="btn-log" type="button" hidden>
+        Log<span class="badge" id="log-badge">0</span>
+      </button>
+      <button class="hbtn primary" id="btn-export" type="button" disabled hidden>Export</button>
+    </header>
+
+    <div class="minimap" id="minimap" hidden></div>
+
+    <div id="empty" class="empty">
+      <h1>Transcript pre-cleaning</h1>
+      <p>Load both files to get started. Progress is saved automatically.</p>
+      <div class="empty-load">
+        <label class="empty-zone" for="in-seglst">
+          <span class="empty-zone-icon">📄</span>
+          <span class="empty-zone-title">.seglst file</span>
+          <span class="empty-zone-hint">JSON with segments</span>
+        </label>
+        <label class="empty-zone" for="in-wav">
+          <span class="empty-zone-icon">🎙</span>
+          <span class="empty-zone-title">.wav track</span>
+          <span class="empty-zone-hint">Speaker's individual channel</span>
+        </label>
+      </div>
+    </div>
+
+    <div id="optimize" class="optimize" hidden>
+      <h2>Optimize before starting?</h2>
+      <p>Automatic proposals were detected in your file. You can apply them now or review them segment by segment.</p>
+      <div class="opt-actions">
+        <button class="opt-btn opt-btn--trim" id="btn-opt-trim" type="button" disabled>
+          <span class="opt-icon">⇤⇥</span>
+          <span class="opt-label">Accept edge changes</span>
+          <span class="opt-badge" id="opt-badge-trim">0</span>
+        </button>
+        <button class="opt-btn opt-btn--ortho" id="btn-opt-ortho" type="button" disabled>
+          <span class="opt-icon">Aa</span>
+          <span class="opt-label">Accept spelling changes</span>
+          <span class="opt-badge" id="opt-badge-ortho">0</span>
+        </button>
+        <button class="opt-btn opt-btn--all" id="btn-opt-all" type="button" disabled>
+          <span class="opt-icon">✓</span>
+          <span class="opt-label">Accept all</span>
+          <span class="opt-badge" id="opt-badge-all">0</span>
+        </button>
+      </div>
+      <button class="opt-skip" id="btn-opt-skip" type="button">Start without optimizing →</button>
+    </div>
+
+    <div id="work" class="stage" hidden>
+      <div class="pos">
+        <div class="n" id="pos-label">Segment <b>1</b> / 1</div>
+        <div class="spk" id="pos-speaker"></div>
+      </div>
+
+      <div id="wave-block">
+        <div id="wave-wrap" class="wavewrap hidden-ui"></div>
+        <div id="zoom-bar" class="zoom-bar hidden-ui">
+          <span class="zoom-label">zoom</span>
+          <input type="range" id="zoom-slider" min="1" max="100" step="1" value="1" />
+          <span class="zoom-val" id="zoom-val">1 px/s</span>
+          <span class="zoom-label gain-sep">gain</span>
+          <input type="range" id="gain-slider" min="1" max="200" step="1" value="30" />
+          <span class="zoom-val" id="gain-val">30</span>
+        </div>
+        <div id="wave-empty" class="nowave">load .wav track to see the waveform</div>
+      </div>
+
+      <div class="card">
+        <div class="playrow">
+          <button class="play" id="btn-play-pause" type="button" disabled>▶ Play</button>
+          <button class="playbtn" id="btn-play-seg" type="button" disabled
+                  title="Play this segment from the start">↺ Play segment</button>
+          <button class="playbtn" id="btn-split" type="button" disabled hidden
+                  title="Split segment at playhead position">✂ Split</button>
+          <button class="playbtn" id="btn-merge-next" type="button" disabled hidden
+                  title="Merge with next segment">⊞ Merge</button>
+          <button class="playbtn danger" id="btn-delete-seg" type="button" disabled hidden
+                  title="Delete this segment">🗑 Delete</button>
+          <div class="clock" id="clock"></div>
+          <span class="playhead-pos" id="playhead-pos"></span>
+          <div class="tin">
+            <label for="time-in">in</label>
+            <input id="time-in" type="text" inputmode="decimal" />
+          </div>
+          <div class="tin">
+            <label for="time-out">out</label>
+            <input id="time-out" type="text" inputmode="decimal" />
+          </div>
+          <div class="warn" id="warn-cjk" hidden>other language?</div>
+          <div class="sp"></div>
+          <div class="playhint">␣ play/pause · ← → navigate · Enter accept</div>
+        </div>
+
+        <div class="editor-grid">
+          <div class="editor-main">
+            <div id="tag-panel" hidden>
+              <div class="taghint" id="tag-hint">
+                <span>Noise gap. Listen and choose a <b>tag</b>:</span>
+                <button class="tospeech" id="btn-tag-to-text" type="button">Has speech? → write text</button>
+              </div>
+              <div class="chips" id="tag-chips"></div>
+            </div>
+
+            <textarea class="bigtext" id="text-editor" hidden></textarea>
+
+            <div class="nav">
+              <button class="prev" id="btn-prev" type="button">← Previous</button>
+              <button class="next" id="btn-next" type="button">Next →</button>
+            </div>
+          </div>
+
+          <div class="props" id="props"></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="drawer" id="drawer">
+      <h3>Change log <button id="drawer-close" type="button">×</button></h3>
+      <div class="log" id="log"><div class="log-empty">No changes yet.</div></div>
+      <div class="foot" id="foot"></div>
+    </aside>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <audio id="audio" preload="auto" playsinline></audio>
+    <div class="analyzing" id="analyzing">Decoding audio…</div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
