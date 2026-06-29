@@ -22,6 +22,22 @@ export interface SegmentRegion {
   color: string;
 }
 
+export interface WaveColors {
+  waveColor: string;
+  progressColor: string;
+  segActive: string;
+  segSilenceOverlay: string;
+  segDrag: string;
+}
+
+const DEFAULT_COLORS: WaveColors = {
+  waveColor: '#6e7a87',
+  progressColor: '#2c8557',
+  segActive: 'rgba(44,133,87,0.30)',
+  segSilenceOverlay: 'rgba(180,140,220,0.25)',
+  segDrag: 'rgba(100,200,140,0.20)',
+};
+
 export class WaveSurferView {
   private ws: WaveSurfer | null = null;
   private wsRegions: ReturnType<typeof RegionsPlugin.create> | null = null;
@@ -31,6 +47,7 @@ export class WaveSurferView {
   private _dragActive = false;
   private _dragBlocked = false;
   private _dragCreateCleanup: (() => void) | null = null;
+  private colors: WaveColors = { ...DEFAULT_COLORS };
 
   /** Call once when WAV is decoded. Destroys any previous instance first. */
   init(
@@ -40,8 +57,10 @@ export class WaveSurferView {
     duration: number,
     onBoundaryChanged: BoundaryChangedCallback,
     gain = 1,
+    colors?: WaveColors,
   ): void {
     this.destroy();
+    this.colors = colors ?? { ...DEFAULT_COLORS };
     this.onChanged = onBoundaryChanged;
     this.totalDuration = duration;
     const peaks = gain > 1 ? applyWaveGain(channelData, gain) : channelData;
@@ -52,8 +71,8 @@ export class WaveSurferView {
       media: mediaEl,
       peaks: [peaks],
       duration,
-      waveColor: '#6e7a87',
-      progressColor: '#2c8557',
+      waveColor: this.colors.waveColor,
+      progressColor: this.colors.progressColor,
       height: 256,
       plugins: [wsRegions, TimelinePlugin.create({ height: 20 })],
     });
@@ -66,6 +85,17 @@ export class WaveSurferView {
         this.pendingZoom = null;
       }
     });
+  }
+
+  /** Update waveform and region colors when the theme changes (no re-init needed). */
+  setColors(colors: WaveColors): void {
+    this.colors = colors;
+    if (this.ws) {
+      this.ws.setOptions({
+        waveColor: colors.waveColor,
+        progressColor: colors.progressColor,
+      });
+    }
   }
 
   /**
@@ -89,7 +119,7 @@ export class WaveSurferView {
       this.wsRegions.addRegion({
         start: s.from,
         end: s.to,
-        color: 'rgba(180,140,220,0.25)',
+        color: this.colors.segSilenceOverlay,
         drag: false,
         resize: false,
       });
@@ -112,7 +142,7 @@ export class WaveSurferView {
     const segRegion = this.wsRegions.addRegion({
       start: active.start,
       end: active.end,
-      color: 'rgba(44,133,87,0.30)',
+      color: this.colors.segActive,
       drag: false,
       resize: true,
     });
@@ -144,7 +174,7 @@ export class WaveSurferView {
     wrapper.addEventListener('pointerdown', onPointerDown, true);
 
     const cleanupDrag = wsRegions.enableDragSelection({
-      color: 'rgba(100,200,140,0.20)',
+      color: this.colors.segDrag,
       minLength: 0.05,
     });
 

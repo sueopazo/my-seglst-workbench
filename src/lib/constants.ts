@@ -150,3 +150,4 @@ export const RUN = 4;
 export const HISTORY_LIMIT = 40;
 export const STORAGE_KEY = 'seglst-workbench:v1';
 export const LANG_KEY = 'seglst-workbench:lang';
+export const THEME_KEY = 'seglst-workbench:theme';

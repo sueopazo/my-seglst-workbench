@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SegLST Workbench</title>
     <style>body{visibility:hidden}</style>
+    <script>
+      (function(){var t=localStorage.getItem('seglst-workbench:theme');if(t==='dark')document.documentElement.dataset.theme='dark';})();
+    </script>
   </head>
   <body>
     <header>
@@ -22,6 +25,7 @@
             <input type="file" id="in-wav" accept="audio/*,.wav,audio/wav" />
           </label>
         </div>
+        <button class="theme-toggle" id="btn-theme" type="button" title="Switch to dark mode">🌙</button>
         <div class="lang-picker">
           <span class="lang-label">Language</span>
           <select id="lang-select">

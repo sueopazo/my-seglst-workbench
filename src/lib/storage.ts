@@ -1,4 +1,4 @@
-import { LANG_KEY, STORAGE_KEY } from './constants';
+import { LANG_KEY, STORAGE_KEY, THEME_KEY } from './constants';
 import type { LogEntry, SavedState, Segment, SessionMeta } from './types';
 
 export function loadSavedState(): SavedState | null {
@@ -40,6 +40,15 @@ export function loadSavedLang(): string {
 
 export function saveLang(code: string): void {
   localStorage.setItem(LANG_KEY, code);
+}
+
+export function loadSavedTheme(): 'light' | 'dark' | null {
+  const v = localStorage.getItem(THEME_KEY);
+  return v === 'dark' ? 'dark' : v === 'light' ? 'light' : null;
+}
+
+export function saveTheme(theme: 'light' | 'dark'): void {
+  localStorage.setItem(THEME_KEY, theme);
 }
 
 export function debounce<T extends (...args: never[]) => void>(fn: T, ms: number): T {

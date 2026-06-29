@@ -14,7 +14,7 @@ import {
 import { applyAllProposals, applyOrthoProposals, applyTrimProposals, previewBatch } from './lib/batch-apply';
 import { decodeWaveform } from './lib/waveform-decode';
 import { History } from './lib/history';
-import { clearSavedState, debounce, loadSavedLang, loadSavedState, saveLang, saveState } from './lib/storage';
+import { clearSavedState, debounce, loadSavedLang, loadSavedState, loadSavedTheme, saveLang, saveState, saveTheme } from './lib/storage';
 import { f2, formatElapsed, hasCJK, mmss } from './lib/format';
 import { currentWordIndex, estimateWordTimings } from './lib/wordTiming';
 import type { LogEntry, Segment, SessionMeta, WavAnalysis } from './lib/types';
@@ -126,12 +126,14 @@ export class App {
     btnMergeNext: $('#btn-merge-next') as HTMLButtonElement,
     btnDeleteSeg: $('#btn-delete-seg') as HTMLButtonElement,
     brandBadge: $('#brand-badge'),
+    btnTheme: $('#btn-theme') as HTMLButtonElement,
   };
 
   constructor() {
     const savedLang = loadSavedLang();
     this.meta.langCode = savedLang;
     this.els.langSelect.value = savedLang;
+    this.applyTheme(loadSavedTheme() ?? 'light');
     this.updateBrandBadge();
     this.bindEvents();
     this.buildTagChips();
@@ -164,6 +166,7 @@ export class App {
     this.els.btnOptAll.addEventListener('click', () => this.enterWork('all'));
     this.els.btnOptSkip.addEventListener('click', () => this.enterWork('skip'));
     this.els.langSelect.addEventListener('change', () => this.onLangChange());
+    this.els.btnTheme.addEventListener('click', () => this.toggleTheme());
     this.els.btnUndo.addEventListener('click', () => this.undo());
     this.els.btnAcceptAll.addEventListener('click', () => this.acceptAll());
     this.els.btnLog.addEventListener('click', () => this.els.drawer.classList.toggle('open'));
@@ -598,6 +601,7 @@ export class App {
       this.decodedDuration,
       (s, e) => this.onBoundaryChange(s, e),
       this.waveGain,
+      this.getThemeColors(),
     );
     this.wsView.enableDragCreate(
       (t) => !this.segments.some(s => t > s.start && t < s.end),
@@ -712,13 +716,50 @@ export class App {
   }
 
   private regionColor(s: Segment): string {
-    if (s.needsTextReview)           return 'rgba(245,194,122,0.22)';
-    if (!this.wav || s.isTag)        return 'rgba(169,216,191,0.15)';
-    if (s.needsText)                 return 'rgba(140,145,150,0.30)';
-    const silent  = segPeakDb(this.wav, s.start, s.end) < this.wav.floor + 12;
-    if (silent)                      return 'rgba(217,179,230,0.18)';
-    if (s.editedTxt || s.editedTime) return 'rgba(156,196,221,0.18)';
-    return 'rgba(207,212,218,0.22)';
+    const cs = getComputedStyle(document.documentElement);
+    const get = (v: string) => cs.getPropertyValue(v).trim();
+    if (s.needsTextReview)           return get('--seg-needs-review');
+    if (!this.wav || s.isTag)        return get('--seg-tag');
+    if (s.needsText)                 return get('--seg-needs-text');
+    const silent = segPeakDb(this.wav, s.start, s.end) < this.wav.floor + 12;
+    if (silent)                      return get('--seg-silent');
+    if (s.editedTxt || s.editedTime) return get('--seg-edited');
+    return get('--seg-default');
+  }
+
+  private getThemeColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const get = (v: string) => cs.getPropertyValue(v).trim();
+    return {
+      waveColor: get('--wave-color'),
+      progressColor: get('--progress-color'),
+      segActive: get('--seg-active'),
+      segSilenceOverlay: get('--seg-silence-overlay'),
+      segDrag: get('--seg-drag'),
+    };
+  }
+
+  private applyTheme(theme: 'light' | 'dark'): void {
+    if (theme === 'dark') {
+      document.documentElement.dataset['theme'] = 'dark';
+      this.els.btnTheme.textContent = '☀';
+      this.els.btnTheme.title = 'Switch to light mode';
+    } else {
+      delete document.documentElement.dataset['theme'];
+      this.els.btnTheme.textContent = '🌙';
+      this.els.btnTheme.title = 'Switch to dark mode';
+    }
+  }
+
+  private toggleTheme(): void {
+    const isDark = document.documentElement.dataset['theme'] === 'dark';
+    const next: 'light' | 'dark' = isDark ? 'light' : 'dark';
+    this.applyTheme(next);
+    saveTheme(next);
+    if (this.wav) {
+      this.wsView.setColors(this.getThemeColors());
+      this.updateView(false);
+    }
   }
 
   private updateAcceptAllBadge(): void {
