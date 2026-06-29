@@ -1,48 +1,47 @@
 # SegLST Workbench
 
-A browser-based QA tool for reviewing speaker segments in multi-speaker audio
-diarization data. It loads one speaker's `.seglst.json` segment file alongside their
-`.wav` track and provides a single-screen workspace to correct segment text, adjust
-boundaries, and insert non-speech tokens — replacing Gecko in the QA review step.
+A browser-based tool for reviewing and correcting speaker diarization transcripts.
+Inspired by [Gecko](https://github.com/gong-io/gecko), rebuilt around productivity and
+reviewer experience: it loads a speaker's `.seglst.json` segment file and their `.wav`
+track and provides a single-screen workspace to fix segment text, adjust boundaries,
+and insert non-speech tokens.
 
-Runs entirely in the browser. No server, no upload: the audio and transcript never
+Runs entirely in the browser. No server, no upload — the audio and transcript never
 leave the machine.
 
-## Why this over Gecko
+> **Format:** SegLST (`.seglst.json`) is a segment-level JSON transcript format used in
+> NeMo-style speaker diarization pipelines. Each segment carries a speaker, a start/end
+> time, and the spoken text. SegLST has no per-word timestamps, which is why the word
+> highlight below estimates them.
 
-SegLST Workbench was built specifically for the QA review flow, and removes the main
-reasons a reviewer had to keep Gecko (and a second tool pass) in the loop.
+## Highlights
 
-- **Persistent autosave.** Gecko autosaves, but the work is lost when the window
-  closes. Here, progress is saved to the browser's `localStorage` and **survives
-  closing the tab or reloading** — reopen and the session is restored exactly where it
-  was left, including the elapsed-time counter.
-- **Pre-review optimization pass.** Before reviewing segment by segment, an optional
-  screen applies bulk proposals in one click — accept all boundary trims, all spelling
-  fixes, or everything — so the per-segment work starts from a cleaner state. This is
-  one of the two biggest time savers.
+Built to make segment review faster and smoother:
+
+- **Persistent autosave.** Progress is saved to the browser's `localStorage` and
+  survives closing the tab or reloading — reopen and the session is restored exactly
+  where it was left, including the elapsed-time counter.
+- **Pre-review optimization pass.** An optional screen applies bulk proposals in one
+  click — accept all boundary trims, all spelling fixes, or everything — so per-segment
+  work starts from a cleaner state.
 - **One-click token insertion.** The full official non-speech token set is available as
   buttons that insert at the cursor (frequent tokens always visible, the rest in an
-  accordion, each with a hover description). No typing bracket tags by hand. The other
-  biggest time saver.
+  accordion, each with a hover description). No typing bracket tags by hand.
 - **Full segment editing from the waveform.** Split at the playhead, delete, create by
-  dragging on the waveform, and **merge adjacent segments** — the last of which Gecko
-  does not do, and which removes the need to move text between mis-split segments by
-  hand.
-- **Logarithmic waveform gain ("Realce").** A soft-knee log scale (like Audacity/Praat)
-  that raises low-amplitude detail so quiet sounds and segment tails are visible —
-  removing the last reason to open Gecko for a visual check of boundaries.
-- **Per-language orthography proposals.** Spelling/casing suggestions tailored per
-  language, surfaced as proposals that are never auto-applied — the reviewer always
-  confirms.
-- **Correct `session_id` on export.** The original `session_id` is preserved rather than
-  overwritten with the filename.
+  dragging on the waveform, and merge adjacent segments.
+- **Logarithmic waveform gain.** A soft-knee log scale (like Audacity/Praat) that raises
+  low-amplitude detail so quiet sounds and segment tails stay visible.
+- **Word highlight on playback.** Words are highlighted in sync with audio position
+  (estimated, since SegLST carries no per-word timestamps) to help keep your eye on
+  where the audio is in the text.
+- **Per-language spelling proposals.** Tailored per language, surfaced as proposals that
+  are never auto-applied — the reviewer always confirms.
+- **Downloadable effort report.** After a review, generates a Markdown report with total
+  time and change metrics (segments modified/added/removed, edit rate, effort level),
+  with a transparent explanation of how the effort level is computed.
 
-### Result
-
-Measured in one timed QA1 review pass on a real file, review time dropped from a
-previous average of ~90 minutes to **~42 minutes — less than half.** The largest contributions come from the pre-review
-optimization pass and one-click token insertion.
+In a real timed run, review time dropped to roughly half of the previous average,
+mainly thanks to the pre-review optimization pass and one-click token insertion.
 
 ## Features
 
@@ -52,13 +51,14 @@ optimization pass and one-click token insertion.
   gray until text is entered).
 - Optional pre-review optimization screen with per-type bulk accept (borders / spelling
   / all), each showing a count.
-- Full official non-speech token palette with frequent/accordion split and hover
-  tooltips.
-- Orthography proposals (spelling, trim start, trim end) shown per segment, accepted
+- Full official non-speech token palette with frequent/accordion split and tooltips.
+- Spelling proposals (and trim start / trim end) shown per segment, accepted
   individually or in bulk; never auto-applied.
 - Sub-200ms gap merge suggestion (proposal, not automatic).
+- Word-level highlight synced to playback and seek.
 - Persistent autosave via `localStorage`; Ctrl/Cmd+S confirms the autosave.
 - Per-file elapsed-time counter, persisted across reloads.
+- Downloadable Markdown effort/time report.
 - Drag-and-drop or click to load files.
 - Remembers the selected language across sessions.
 
@@ -66,16 +66,15 @@ optimization pass and one-click token insertion.
 
 Latin-script languages: **English, Spanish, Portuguese (BR), German, French, Italian.**
 
-Each language has its own orthography profile. Spanish is the most complete (full
-accent and punctuation handling); the others are intentionally conservative — they
-propose only mechanically safe corrections and leave meaning-dependent decisions
-(accents, German noun capitalization, Italian geminates, etc.) to the reviewer.
+Each language has its own spelling profile. Spanish is the most complete (full accent
+and punctuation handling); the others are intentionally conservative — they propose only
+mechanically safe corrections and leave meaning-dependent decisions (accents, German
+noun capitalization, Italian geminates, etc.) to the reviewer.
 
 **Out of scope:** non-Latin writing systems (CJK, right-to-left scripts such as Arabic
 and Hebrew, Cyrillic). These break core assumptions of the tool (word spacing, text
-direction, script detection) and would require foundational work, not just a new
-profile. A team working in those languages can clone this repo and build that layer on
-top.
+direction, script detection) and would need foundational work, not just a new profile.
+A team working in those languages can fork this repo and build that layer on top.
 
 ## Running it
 
@@ -96,14 +95,15 @@ optimization pass, then review segment by segment. Export writes the corrected
 ## Architecture
 
 - `src/lib/` — pure logic, no DOM: audio analysis (envelope/dB, edge detection,
-  internal silences), segment operations (split/merge/export), and orthography profiles.
-  This is the tested layer (`npm test`).
+  internal silences), segment operations (split/merge/export), spelling profiles, the
+  report generator, and the word-timing estimator. This is the tested layer
+  (`npm test`).
 - `src/ui/` — rendering: waveform view and minimap.
 - `src/app.ts` — orchestration wiring the two together.
 
-Anyone extending the tool (e.g. adding a writing system or a new orthography profile)
-should start in `src/lib/`. UI strings are English-only by design; the selectable
-language affects orthography rules, not the interface.
+Anyone extending the tool (a new writing system, a new spelling profile) should start in
+`src/lib/`. UI strings are English-only by design; the selectable language affects
+spelling rules, not the interface.
 
 ## Scope
 
