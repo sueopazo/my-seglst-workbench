@@ -16,11 +16,16 @@ import { decodeWaveform } from './lib/waveform-decode';
 import { History } from './lib/history';
 import { clearSavedState, debounce, loadSavedLang, loadSavedState, saveLang, saveState } from './lib/storage';
 import { f2, formatElapsed, hasCJK, mmss } from './lib/format';
+import { currentWordIndex, estimateWordTimings } from './lib/wordTiming';
 import type { LogEntry, Segment, SessionMeta, WavAnalysis } from './lib/types';
 import { Minimap } from './ui/minimap';
 import { WaveSurferView } from './ui/wavesurfer-view';
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
+
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 export class App {
   private segments: Segment[] = [];
@@ -109,6 +114,7 @@ export class App {
     tagChips: $('#tag-chips'),
     btnTagToText: $('#btn-tag-to-text'),
     textEditor: $('#text-editor') as HTMLTextAreaElement,
+    karaokeEl: $('#karaoke-mirror') as HTMLDivElement,
     timeIn: $('#time-in') as HTMLInputElement,
     timeOut: $('#time-out') as HTMLInputElement,
     warnCjk: $('#warn-cjk'),
@@ -174,6 +180,7 @@ export class App {
     this.els.audio.addEventListener('seeked', () => {
       this.updateSplitButton();
       this.updatePlayheadLabel();
+      this.updateKaraokeHighlight(this.els.audio.currentTime);
     });
     this.els.audio.addEventListener('timeupdate', () => this.updatePlayheadLabel());
     this.els.btnMergeNext.addEventListener('click', () => this.mergeNext());
@@ -195,6 +202,10 @@ export class App {
       if (this.channelData) this.wsView.updateGain(this.channelData, this.waveGain);
     });
 
+    this.els.textEditor.addEventListener('focus', () => this.clearKaraokeHighlight());
+    this.els.textEditor.addEventListener('blur', () => {
+      if (this.playing !== null) this.updateKaraokeHighlight(this.els.audio.currentTime);
+    });
     this.els.textEditor.addEventListener('change', () => this.onTextChange());
     this.els.timeIn.addEventListener('change', () => this.onTimeChange('in'));
     this.els.timeOut.addEventListener('change', () => this.onTimeChange('out'));
@@ -608,6 +619,7 @@ export class App {
 
   private advanceTo(index: number): void {
     if (index < 0 || index >= this.segments.length || index === this.cur) return;
+    this.clearKaraokeHighlight();
     this.cur = index;
     this.playing = index;
     this.updateView(false);
@@ -615,8 +627,9 @@ export class App {
   }
 
   private onTimeUpdate(): void {
-    if (this.playing === null || this.stopTimer !== null) return;
     const t = this.els.audio.currentTime;
+    if (this.playing !== null) this.updateKaraokeHighlight(t);
+    if (this.playing === null || this.stopTimer !== null) return;
     let target = -1;
     for (let i = 0; i < this.segments.length; i++) {
       const s = this.segments[i];
@@ -1185,6 +1198,7 @@ export class App {
     this.els.btnPlayPause.classList.remove('on');
     this.els.btnPlayPause.textContent = '▶ Play';
     this.playing = null;
+    this.clearKaraokeHighlight();
   }
 
   /** Safari needs seeked before play(); stale currentTime otherwise cuts audio instantly. */
@@ -1436,5 +1450,34 @@ export class App {
       () => t.classList.remove('show'),
       3500,
     );
+  }
+
+  private updateKaraokeHighlight(t: number): void {
+    if (document.activeElement === this.els.textEditor) return;
+    const s = this.segments[this.cur];
+    if (!s || s.isTag) { this.clearKaraokeHighlight(); return; }
+    if (t < s.start || t > s.end) { this.clearKaraokeHighlight(); return; }
+
+    const windows = estimateWordTimings(s.words, s.start, s.end);
+    if (windows.length === 0) { this.clearKaraokeHighlight(); return; }
+
+    const ci = currentWordIndex(windows, t);
+
+    let html = '';
+    for (let i = 0; i < windows.length; i++) {
+      if (i > 0) html += ' ';
+      const w = escHtml(windows[i].word);
+      if (i < ci) html += `<span class="k-spoken">${w}</span>`;
+      else if (i === ci) html += `<span class="k-current">${w}</span>`;
+      else html += w;
+    }
+
+    this.els.karaokeEl.innerHTML = html;
+    this.els.textEditor.style.color = 'transparent';
+  }
+
+  private clearKaraokeHighlight(): void {
+    this.els.karaokeEl.innerHTML = '';
+    this.els.textEditor.style.color = '';
   }
 }
