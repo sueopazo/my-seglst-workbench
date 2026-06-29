@@ -56,6 +56,19 @@ src/app.ts Orchestration: wires lib + ui + DOM events.
 - Update `PROGRESS.md` when a phase moves forward.
 - Prefer small, reviewable diffs over large rewrites.
 
+## Testing rules
+
+- **Pure logic (no DOM) goes in `src/lib/`, never inside the app class.** If a new
+  feature adds testable logic (segment operations, calculations, data
+  transformations), put it in `lib/` from the start — not after the fact.
+- **Every module added to `lib/` must have Vitest tests, written in the same task
+  as the feature.** Tests are not a follow-up; they ship with the code.
+- **Do NOT test UI, gestures, waveform rendering, or DOM handlers** — those are
+  verified manually.
+- Before closing any task that touches `lib/`: run `npm run test:run` and confirm
+  it passes, including the new tests.
+- If it's not clear what to test, ask before closing the task.
+
 ## Conventions in this codebase
 
 - **All UI strings must be in English** — toasts, labels, messages, hints, placeholders, confirmations, tooltips. No exceptions. The selectable language (English/Spanish/German/French/Italian) only affects orthography rules for the corpus; it never changes the UI language. Do not let Spanish bleed into future features.
