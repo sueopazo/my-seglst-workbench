@@ -9,10 +9,11 @@ export const mmss = (s: number): string => {
 export const hasCJK = (t: string): boolean =>
   /[\u3000-\u9fff\u3040-\u30ff\uac00-\ud7af]/.test(t);
 
-export const isTagOnly = (words: string): boolean =>
-  /^\[(other-noise|inhale|exhale|breath|laugh|chuckle|lip-smack|clear-throat|scoff|sniff|tsk|unintelligible)\]$/.test(
-    words.trim(),
-  );
+import { TAGS } from './constants';
+
+const TAG_SET = new Set<string>(TAGS);
+
+export const isTagOnly = (words: string): boolean => TAG_SET.has(words.trim());
 
 export const flagged = (s: { start: number; end: number }): boolean => s.end - s.start < 0.2;
 

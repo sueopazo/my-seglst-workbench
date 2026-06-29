@@ -60,18 +60,45 @@ describe('hasCJK', () => {
 });
 
 describe('isTagOnly', () => {
-  it('returns true for [laugh]', () => {
+  // TAG_PINNED tokens (all 13 must return true)
+  it('returns true for [laugh] (TAG_PINNED)', () => {
     expect(isTagOnly('[laugh]')).toBe(true);
   });
 
-  it('returns true for [other-noise]', () => {
+  it('returns true for [other-noise] (TAG_PINNED)', () => {
     expect(isTagOnly('[other-noise]')).toBe(true);
   });
 
-  it('returns true for [unintelligible]', () => {
+  it('returns true for [unintelligible] (TAG_PINNED)', () => {
     expect(isTagOnly('[unintelligible]')).toBe(true);
   });
 
+  it('returns true for [swallow] (TAG_PINNED — was broken in old regex)', () => {
+    expect(isTagOnly('[swallow]')).toBe(true);
+  });
+
+  it('returns true for [sigh] (TAG_PINNED — was broken in old regex)', () => {
+    expect(isTagOnly('[sigh]')).toBe(true);
+  });
+
+  it('returns true for [cough] (TAG_PINNED — was broken in old regex)', () => {
+    expect(isTagOnly('[cough]')).toBe(true);
+  });
+
+  // TAG_EXTRA tokens (representative sample — all were broken in old regex)
+  it('returns true for [giggle] (TAG_EXTRA)', () => {
+    expect(isTagOnly('[giggle]')).toBe(true);
+  });
+
+  it('returns true for [hum-tune] (TAG_EXTRA — hyphenated)', () => {
+    expect(isTagOnly('[hum-tune]')).toBe(true);
+  });
+
+  it('returns true for [tongue-click] (TAG_EXTRA)', () => {
+    expect(isTagOnly('[tongue-click]')).toBe(true);
+  });
+
+  // Negative cases
   it('returns false for plain text', () => {
     expect(isTagOnly('hello')).toBe(false);
   });
