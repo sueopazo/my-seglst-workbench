@@ -183,7 +183,7 @@ export class App {
     this.els.audio.addEventListener('seeked', () => {
       this.updateSplitButton();
       this.updatePlayheadLabel();
-      this.updateKaraokeHighlight(this.els.audio.currentTime);
+      if (this.playing !== null) this.updateKaraokeHighlight(this.els.audio.currentTime);
     });
     this.els.audio.addEventListener('timeupdate', () => this.updatePlayheadLabel());
     this.els.btnMergeNext.addEventListener('click', () => this.mergeNext());
